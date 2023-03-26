@@ -1,18 +1,21 @@
 import streamlit as st
 import openai
-import config
 from ai_main import load_index, answer_question, clear_chat_history  # Import clear_chat_history function
 import json 
 import pinecone
 import pandas as pd
 
+pinecone_api_key = st.secrets["PINECONE_API_KEY"]
+pinecone_environment = st.secrets["PINECONE_environment"]
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+
 pinecone.init(
-    api_key=config.PINECONE_API_KEY,
-    environment=config.PINECONE_environment
+    api_key=pinecone_api_key,
+    environment=pinecone_environment
 )
+openai.api_key = openai_api_key
 
 index = load_index()
-openai.api_key = config.OPENAI_API_KEY
 updated_stream = ""
 
 

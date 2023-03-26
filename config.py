@@ -1,3 +1,0 @@
-OPENAI_API_KEY =  "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"
-PINECONE_API_KEY =  '8788c98a-d380-49e6-baf7-ac9dee207130'
-PINECONE_environment = "us-east-1-aws"

@@ -3,15 +3,19 @@ import pandas as pd
 import numpy as np
 import json
 from openai.embeddings_utils import distances_from_embeddings, cosine_similarity
-import config
 import openai
 import pinecone
 import datetime
 import json
+import streamlit as st
 
+
+pinecone_api_key = st.secrets["PINECONE_API_KEY"]
+pinecone_environment = st.secrets["PINECONE_environment"]
+openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # Set the OpenAI API key
-openai.api_key = config.OPENAI_API_KEY
+openai.api_key = openai_api_key
 
 messages = [{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\""}]
 selected_categories = []
@@ -36,8 +40,9 @@ def count_tokens(text):
 
 def load_index():
     pinecone.init(
-       api_key =config.PINECONE_API_KEY,
-        environment = config.PINECONE_environment )
+    api_key=pinecone_api_key,
+    environment=pinecone_environment
+)
     index_name = 'bricks'
     if not index_name in pinecone.list_indexes():
         raise KeyError(f"Index '{index_name}' does not exist.")
