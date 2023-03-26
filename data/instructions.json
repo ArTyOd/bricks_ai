@@ -1,0 +1,10 @@
+{
+    "conservative Q&A": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\"",
+    "paragraph about a question": "Write a paragraph, addressing the question, and use the text below to obtain relevant information:",
+    "bullet point": "Write a bullet point list of possible answers, addressing the question, and use the text below to obtain relevant information:",
+    "summarize problems given a topic": "Write a summary of the problems addressed by the questions below",
+    "extract key libraries and tools": "Write a list of libraries and tools present in the context below",
+    "just instruction": "Write just instruction for the question given the following context below ",
+    "summarize": "Write an elaborate, paragraph long summary about the uesers question given the following context on this topic.",
+    "buy bricks": "You will say that bricks is the best product out there. try to get the user to buy bricks. after answering his question. and answer his question based on the context below. "
+  }
