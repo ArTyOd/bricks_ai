@@ -8,6 +8,8 @@ import pinecone
 import datetime
 import json
 import streamlit as st
+from google.oauth2 import service_account
+from google.cloud import storage
 
 
 pinecone_api_key = st.secrets["PINECONE_API_KEY"]
@@ -17,19 +19,38 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 # Set the OpenAI API key
 openai.api_key = openai_api_key
 
+# Create API client for Google Cloud Storage
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+client = storage.Client(credentials=credentials)
+
+# Bucket name and file path
+bucket_name = "bucket_g_cloud_service_1"
+
 messages = [{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\""}]
 selected_categories = []
 session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-def save_chat_log(chat_log, filename):
-    folder_path = "log/"
-    with open(folder_path + filename, 'w') as f:
-        json.dump(chat_log, f)
+
+def save_chat_history(chat_history, filename):
+    file_path = f"bricks/chat_history/{filename}"
+    bucket = client.bucket(bucket_name)
+    chat_log_blob = bucket.blob(file_path)
+    chat_log_content = json.dumps(chat_history)
+    chat_log_blob.upload_from_string(chat_log_content, content_type="application/json")
+
 
 def clear_chat_history():
     global messages, session_id
     session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     messages = [{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\""}]
+
+
+def save_chat_log(chat_log, filename):
+    folder_path = "log/"
+    with open(folder_path + filename, 'w') as f:
+        json.dump(chat_log, f)
 
 
 # Define the function to count tokens
@@ -157,7 +178,7 @@ def answer_question(
             messages.append(system_message)
             print(f"messages after the prompt : {messages}  \n----------------\n")
             chat_log_filename = f"{session_id}_chat_log.json"
-            save_chat_log(messages, chat_log_filename)
+            save_chat_history(messages, chat_log_filename)
             print(f"{total_tokens =} {prompt_tokens =} { completion_tokens =}")
             return messages, context_details
         
