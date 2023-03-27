@@ -54,17 +54,21 @@ def app():
         # Move the instruction edit fields above the categories
         edit_instructions = st.checkbox("Edit instructions")
         if edit_instructions:
-            instruction_key = st.selectbox("Instruction key:", list(instructions.keys()))
-            instruction_value = st.text_area("Instruction value:", value=instructions[instruction_key])
-            
+            instruction_key = st.selectbox("Instruction key:", list(instructions.keys()), index=0)  # Change to selectbox
+            instruction_value = st.text_area("Instruction value:", value=instructions[instruction_key])  # Add value
+    
             # Add this code snippet
             button_row = st.columns(2)
             with button_row[0]:
-                add_button = st.button("Add/Update")
+                add_button = st.button("Update")
             with button_row[1]:
                 delete_button = st.button("Delete")
-            # End of the code snippet
+
+            add_new_key = st.text_input("Add new instruction key:")  # Add new input for a new instruction key
+            add_new_value = st.text_area("Add new instruction value:")  # Add new input for a new instruction value
+            add_button = st.button("Add")  # Add button for adding new instruction
             
+
             if add_button:
                 instructions[instruction_key] = instruction_value
                 save_instructions(instructions)
