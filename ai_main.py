@@ -10,6 +10,7 @@ import json
 import streamlit as st
 from google.oauth2 import service_account
 from google.cloud import storage
+import tiktoken
 
 
 pinecone_api_key = st.secrets["PINECONE_API_KEY"]
@@ -70,7 +71,28 @@ def load_index():
     return pinecone.Index(index_name)
 
 
-def create_context(question,index, max_len=1800, size="ada"):
+def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
+  """Returns the number of tokens used by a list of messages."""
+  try:
+      encoding = tiktoken.encoding_for_model(model)
+  except KeyError:
+      encoding = tiktoken.get_encoding("cl100k_base")
+  if model == "gpt-3.5-turbo-0301":  # note: future models may deviate from this
+      num_tokens = 0
+      for message in messages:
+          num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+          for key, value in message.items():
+              num_tokens += len(encoding.encode(value))
+              if key == "name":  # if there's a name, the role is omitted
+                  num_tokens += -1  # role is always required and always 1 token
+      num_tokens += 2  # every reply is primed with <im_start>assistant
+      return num_tokens
+  else:
+      raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.
+  See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens.""")
+
+
+def create_context(question,index, max_len=1500, size="ada"):
     """
     Create a context for a question by finding the most similar context from the Pinecone index
     """
@@ -113,13 +135,11 @@ def create_context(question,index, max_len=1800, size="ada"):
     return "\n\n###\n\n".join(returns), context_details
 
 
-def engineer_prompt(question, index):
+def engineer_prompt(question, index, max_len):
     """
     Answer a question based on the most similar context from the Pinecone index
     """
-    context, context_details = create_context(
-        question,
-        index)
+    context, context_details = create_context(question, index, max_len)
     prompt =  [ {"role": "assistant", "content": f"Context: {context}"},
                 {"role": "user", "content": f"{question}"}]
     return prompt, context_details
@@ -131,24 +151,23 @@ def answer_question(
     index = "",
     categories = [],
     question = "what?",
-    max_len=1800,
+    
     size="ada",
-    debug=False,
     max_tokens=150,
+    max_len=1500,
+    temperature = 0.5,
+    debug=False,
     stop=None,
     callback=None):
    
 
     global messages, selected_categories
-    total_tokens = 0
-    prompt_tokens = 0
-    completion_tokens = 0
-
     
     selected_categories = categories
     messages[0] = {"role": "system", "content": f"{instruction}"}
-    prompt, context_details = engineer_prompt(question= question,index = index)
+    prompt, context_details = engineer_prompt(question= question,index = index, max_len = max_len)
     messages += prompt
+    print(f"messages before the prompting OpenAO: {context_details} \n----------------\n ")
     print(f"messages before the prompting OpenAO: {messages} \n----------------\n ")
     # If debug, print the raw model response
     if debug:
@@ -161,6 +180,8 @@ def answer_question(
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
             stream=True,
         )
         output_text = ""
@@ -172,20 +193,26 @@ def answer_question(
                 output_text += r_text
                 if callback:
                     callback(r_text)
+        
+        
         if callback:
             system_message = {"role" : "assistant" , "content" :  output_text}
+            
+            prompt_tokens = num_tokens_from_messages(messages)
+            completion_tokens = num_tokens_from_messages([system_message])
+            total_tokens = prompt_tokens + completion_tokens
             messages = [d for d in messages if not (d.get("role") == "assistant" and "Context" in d.get("content"))]
             messages.append(system_message)
             print(f"messages after the prompt : {messages}  \n----------------\n")
             chat_log_filename = f"{session_id}_chat_log.json"
             save_chat_history(messages, chat_log_filename)
             print(f"{total_tokens =} {prompt_tokens =} { completion_tokens =}")
-            return messages, context_details
+            return messages, context_details, prompt_tokens, completion_tokens, total_tokens
         
         return response["choices"][0]["message"]['content'], context_details
     except Exception as e:
         print(e)
         print(f"something is wrong")
-        return "", ""
+        return "", "",  0, 0, 0
 
 

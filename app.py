@@ -36,11 +36,26 @@ def save_instructions(instructions):
         json.dump(instructions, f, indent=2)
 
 def app():
-    st.title("AI Assistant")
-    
+    st.title("Bricks Assistant")
+
     st.sidebar.header("How it Works")
-    st.sidebar.write("Describe here how your AI assistant works.")
-    
+    st.sidebar.write("This AI Assistant uses GPT-3.5 to answer questions based on a chosen set of instructions and categories. Customize GPT-3.5 parameters and select categories to refine the AI's responses.")
+
+    # Add a separator
+    st.sidebar.markdown("<hr style='height: 1px; border: none; background-color: gray; margin-left: -20px; margin-right: -20px;'>", unsafe_allow_html=True)
+
+    # GPT parameter fields
+    st.sidebar.subheader("GPT Parameters")
+    max_token_question = st.sidebar.number_input("Max tokens (question):", min_value=1, value=1500)
+    max_token_answer = st.sidebar.number_input("Max tokens (answer):", min_value=1, value=250)
+    temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.5)
+
+    # Add a separator
+    st.sidebar.markdown("<hr style='height: 1px; border: none; background-color: gray; margin-left: -20px; margin-right: -20px;'>", unsafe_allow_html=True)
+
+    # Token usage
+    st.sidebar.subheader("Token Usage")
+
     with st.form(key="input_form", clear_on_submit=True):
         user_input = st.text_input("Ask a question:", key="ask_question")
         button_col1, button_col2 = st.columns(2)
@@ -81,8 +96,18 @@ def app():
     if send_button:
         placeholder_response = st.empty()
         chat_container = st.container()
-        update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response)
+        prompt_tokens, completion_tokens, total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature)
+        
+        # Update the token count in the sidebar
+        st.sidebar.write(f"Tokens used for prompt: {prompt_tokens}")
+        st.sidebar.write(f"Tokens used for completion: {completion_tokens}")
+        st.sidebar.write(f"Total tokens: {total_tokens}")
+        if "total_chat_tokens" not in st.session_state:
+            st.session_state.total_chat_tokens = 0
+        st.session_state.total_chat_tokens += total_tokens
+        st.sidebar.write(f"Total tokens in chat session: {st.session_state.total_chat_tokens}")
 
+        
     # Add a New Session/Chat button in app_bricks.py
     if st.button("New Session/Chat"):
         clear_chat_history()
@@ -112,19 +137,25 @@ def get_checked_categories(unique_categories):
     return checked_categories
 
 
-def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response):
+def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response,  max_token_question, max_token_answer, temperature):
     if user_input:
         updated_stream = "" 
-        st.session_state.chat_history, context_details = answer_question(question=user_input,
+        st.session_state.chat_history, context_details, prompt_tokens, completion_tokens, total_tokens = answer_question(question=user_input,
                         instruction=instructions[selected_instruction],
                         categories=checked_categories,
                         index=index,
                         debug=False,
+                        max_tokens=max_token_answer,
+                        max_len = max_token_question,
+                        temperature = temperature,
                         callback=lambda text: display_stream_answer(text, placeholder_response)
                     )
         display_context_details(context_details)
-    display_chat(st.session_state.chat_history[1:-1], chat_container)
+        display_chat(st.session_state.chat_history[1:-1], chat_container)
+        return prompt_tokens, completion_tokens, total_tokens
+    
     # print(f"{context_details =}")
+    return 0, 0, 0
      
      
      
