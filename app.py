@@ -48,7 +48,8 @@ def app():
     st.sidebar.subheader("GPT Parameters")
     max_token_question = st.sidebar.number_input("Max tokens (question):", min_value=1, value=1500)
     max_token_answer = st.sidebar.number_input("Max tokens (answer):", min_value=1, value=250)
-    temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.5)
+    temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.3)
+    reframing = st.sidebar.checkbox("Enable reframing questions", value=True)
 
     # Add a separator
     st.sidebar.markdown("<hr style='height: 1px; border: none; background-color: gray; margin-left: -20px; margin-right: -20px;'>", unsafe_allow_html=True)
@@ -96,7 +97,7 @@ def app():
     if send_button:
         placeholder_response = st.empty()
         chat_container = st.container()
-        prompt_tokens, completion_tokens, total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature)
+        prompt_tokens, completion_tokens, total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing)
         
         # Update the token count in the sidebar
         st.sidebar.write(f"Tokens used for prompt: {prompt_tokens}")
@@ -137,7 +138,7 @@ def get_checked_categories(unique_categories):
     return checked_categories
 
 
-def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response,  max_token_question, max_token_answer, temperature):
+def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response,  max_token_question, max_token_answer, temperature, reframing):
     if user_input:
         updated_stream = "" 
         st.session_state.chat_history, context_details, prompt_tokens, completion_tokens, total_tokens = answer_question(question=user_input,
@@ -148,6 +149,7 @@ def update_chat(user_input, selected_instruction, checked_categories, chat_conta
                         max_tokens=max_token_answer,
                         max_len = max_token_question,
                         temperature = temperature,
+                        reframing=reframing,
                         callback=lambda text: display_stream_answer(text, placeholder_response)
                     )
         display_context_details(context_details)

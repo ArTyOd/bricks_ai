@@ -135,11 +135,55 @@ def create_context(question,index, max_len=1500, size="ada"):
     return "\n\n###\n\n".join(returns), context_details
 
 
-def engineer_prompt(question, index, max_len):
+def fallback_reframe_question(messages, original_question, model="gpt-3.5-turbo", temperature=0.3, max_tokens=100):
+    """
+    Rephrase the original question to be more specific, given the context of the chat history (messages).
+    """
+ 
+    # Create a copy of the original messages
+    # messages_copy = messages.copy()
+    messages_reframe = []
+    # print(f"messages before the prompting reframing: {messages_reframe} \n----------------\n ")
+    # Add the rephrase instruction message to the messages_reframe
+
+    rephrase_instruction = f"Your task is to rephrase the user's question below, considering the given CHAT HISTORY. Ensure the rephrased question is clear, concise, and works as a standalone query. Do not provide any additional information, summary, or explanation. If you cannot rephrase the question, simply respond with 'I don't know'. /n CHAT HISTORY: {[message.items() for message in messages]}"
+    messages_reframe.append({"role": "system", "content": f"{rephrase_instruction}"})
+    messages_reframe.append({"role": "user", "content": original_question})
+    print(f"messages after the prompting reframing: {messages_reframe} \n----------------\n ")
+    try:
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages_reframe,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        rephrased_question = response["choices"][0]["message"]['content'].strip()
+        return rephrased_question
+    except Exception as e:
+        print(e)
+        print("An error occurred while rephrasing the question.")
+        return ""
+
+
+
+
+def engineer_prompt(question, index, max_len, reframing = True):
     """
     Answer a question based on the most similar context from the Pinecone index
     """
+    global messages
+    
     context, context_details = create_context(question, index, max_len)
+    context_score = context_details[0]['score'] if context_details else 0
+    if context_score < 0.78 and reframing:
+        rephrased_question = fallback_reframe_question(messages, question, model="gpt-3.5-turbo", temperature=0.1, max_tokens=100)
+        new_context, new_context_details = create_context(rephrased_question, index, max_len)
+        new_context_score = new_context_details[0]['score'] if context_details else 0
+        if new_context_score > context_score:
+            context, context_details = new_context, new_context_details
+            print(f"Context score to low {context_score = }, question was rephrased: {rephrased_question}, new context score {new_context_score} \n----------------\n")
+            question = rephrased_question
     prompt =  [ {"role": "assistant", "content": f"Context: {context}"},
                 {"role": "user", "content": f"{question}"}]
     return prompt, context_details
@@ -151,7 +195,7 @@ def answer_question(
     index = "",
     categories = [],
     question = "what?",
-    
+    reframing = True,
     size="ada",
     max_tokens=150,
     max_len=1500,
@@ -165,9 +209,9 @@ def answer_question(
     
     selected_categories = categories
     messages[0] = {"role": "system", "content": f"{instruction}"}
-    prompt, context_details = engineer_prompt(question= question,index = index, max_len = max_len)
+    prompt, context_details = engineer_prompt(question= question,index = index, max_len = max_len, reframing=reframing)
     messages += prompt
-    print(f"messages before the prompting OpenAO: {context_details} \n----------------\n ")
+
     print(f"messages before the prompting OpenAO: {messages} \n----------------\n ")
     # If debug, print the raw model response
     if debug:
