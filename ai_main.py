@@ -159,6 +159,8 @@ def fallback_reframe_question(messages, original_question, model="gpt-3.5-turbo"
         )
         
         rephrased_question = response["choices"][0]["message"]['content'].strip()
+        if "don't know" in rephrased_question:
+            return original_question
         return rephrased_question
     except Exception as e:
         print(e)
@@ -168,7 +170,7 @@ def fallback_reframe_question(messages, original_question, model="gpt-3.5-turbo"
 
 
 
-def engineer_prompt(question, index, max_len, reframing = True):
+def engineer_prompt(question, index, max_len,model, reframing = True, ):
     """
     Answer a question based on the most similar context from the Pinecone index
     """
@@ -177,7 +179,7 @@ def engineer_prompt(question, index, max_len, reframing = True):
     context, context_details = create_context(question, index, max_len)
     context_score = context_details[0]['score'] if context_details else 0
     if context_score < 0.78 and reframing:
-        rephrased_question = fallback_reframe_question(messages, question, model="gpt-3.5-turbo", temperature=0.1, max_tokens=100)
+        rephrased_question = fallback_reframe_question(messages, question, model=model, temperature=0.1, max_tokens=100)
         new_context, new_context_details = create_context(rephrased_question, index, max_len)
         new_context_score = new_context_details[0]['score'] if context_details else 0
         if new_context_score > context_score:
@@ -209,7 +211,7 @@ def answer_question(
     
     selected_categories = categories
     messages[0] = {"role": "system", "content": f"{instruction}"}
-    prompt, context_details = engineer_prompt(question= question,index = index, max_len = max_len, reframing=reframing)
+    prompt, context_details = engineer_prompt(question= question,index = index, max_len = max_len, reframing=reframing, model=model)
     messages += prompt
 
     print(f"messages before the prompting OpenAO: {messages} \n----------------\n ")
@@ -222,7 +224,7 @@ def answer_question(
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,

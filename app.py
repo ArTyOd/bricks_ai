@@ -42,10 +42,28 @@ def app():
     st.sidebar.write("This AI Assistant uses GPT-3.5 to answer questions based on a chosen set of instructions and categories. Customize GPT-3.5 parameters and select categories to refine the AI's responses.")
 
     # Add a separator
-    st.sidebar.markdown("<hr style='height: 1px; border: none; background-color: gray; margin-left: -20px; margin-right: -20px;'>", unsafe_allow_html=True)
+    st.sidebar.markdown("<hr style='height: 1px; border: none; background-color: gray; margin-left: -10px; margin-right: -10px;'>", unsafe_allow_html=True)
 
     # GPT parameter fields
+    
     st.sidebar.subheader("GPT Parameters")
+    # Add GPT model selection buttons
+    model_col1, model_col2 = st.sidebar.columns(2)
+    with model_col1:
+        gpt_35_button = st.button("GPT-3.5")
+    with model_col2:
+        gpt_4_button = st.button("GPT-4")
+    # Store the selected model in session state
+    if gpt_35_button:
+        st.session_state.selected_model = "gpt-3.5-turbo"
+    elif gpt_4_button:
+        st.session_state.selected_model = "gpt-4"
+
+    # Default to GPT-3.5 if no model is selected
+    if "selected_model" not in st.session_state:
+        st.session_state.selected_model = "gpt-3.5-turbo"
+        
+    st.sidebar.write(f"Selected model: {st.session_state.selected_model}")
     max_token_question = st.sidebar.number_input("Max tokens (question):", min_value=1, value=1500)
     max_token_answer = st.sidebar.number_input("Max tokens (answer):", min_value=1, value=250)
     temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.3)
@@ -97,7 +115,7 @@ def app():
     if send_button:
         placeholder_response = st.empty()
         chat_container = st.container()
-        prompt_tokens, completion_tokens, total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing)
+        prompt_tokens, completion_tokens, total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing, st.session_state.selected_model)
         
         # Update the token count in the sidebar
         st.sidebar.write(f"Tokens used for prompt: {prompt_tokens}")
@@ -138,14 +156,16 @@ def get_checked_categories(unique_categories):
     return checked_categories
 
 
-def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response,  max_token_question, max_token_answer, temperature, reframing):
+def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response,  max_token_question, max_token_answer, temperature, reframing, selected_model):
     if user_input:
+        print(f"{selected_model = }")
         updated_stream = "" 
         st.session_state.chat_history, context_details, prompt_tokens, completion_tokens, total_tokens = answer_question(question=user_input,
                         instruction=instructions[selected_instruction],
                         categories=checked_categories,
                         index=index,
                         debug=False,
+                        model=selected_model,
                         max_tokens=max_token_answer,
                         max_len = max_token_question,
                         temperature = temperature,
