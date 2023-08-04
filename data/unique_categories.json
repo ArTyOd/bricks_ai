@@ -1,21 +1,23 @@
 {
-    "Academy": [
-      "getting-started",
-      "templates",
-      "features",
-      "basics",
-      "controls",
-      "filters",
-      "woocommerce"
-    ],
-    "Discourse": [
-      "Announcements",
-      "Bugs",
-      "How To",
-      "Feature Requests / Improvements",
-      "Developers",
-      "Showcase",
-      "Miscellaneous"
-    ]
-  }
-  
+  "Academy": [
+    "getting-started",
+    "templates",
+    "features",
+    "basics",
+    "controls",
+    "filters",
+    "woocommerce"
+  ],
+  "Discourse": [
+    "Announcements",
+    "Bugs",
+    "How To",
+    "Feature Requests / Improvements",
+    "Developers",
+    "Showcase",
+    "Miscellaneous"
+  ],
+  "Support": [
+    "mail"
+  ]
+}

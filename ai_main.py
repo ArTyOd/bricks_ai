@@ -13,8 +13,8 @@ from google.cloud import storage
 import tiktoken
 
 
-pinecone_api_key = st.secrets["PINECONE_API_KEY"]
-pinecone_environment = st.secrets["PINECONE_environment"]
+pinecone_api_key = st.secrets["PINECONE_API_KEY_Bricks"]
+pinecone_environment = st.secrets["PINECONE_environment_Bricks"]
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 
 # Set the OpenAI API key
@@ -32,6 +32,7 @@ bucket_name = "bucket_g_cloud_service_1"
 messages = [{"role": "system", "content": "Answer the question based on the context below, and if the question can't be answered based on the context, say \"I don't know\""}]
 selected_categories = []
 session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
 
 
 def save_chat_history(chat_history, filename):
@@ -124,12 +125,13 @@ def create_context(question,index, max_len=1500, size="ada"):
         
         # Add the context information to the context_details list
         context_details.append({
-            'score': match['score'],
-            'category': match['metadata']['category'],
-            'topic': match['metadata']['topic'],
-            'url': match['metadata']['url'],
-            'token': match['metadata']['n_tokens'],
-        })
+                'score': match.get('score', None),
+                'category': match['metadata'].get('category', None),
+                'topic': match['metadata'].get('topic', None),
+                'url': match['metadata'].get('url', None),
+                'token': match['metadata'].get('n_tokens', None),
+            })
+
     print(f"How much Contexts found: {len(returns)} \n----------------\n ")
     # Return the context and context_details
     return "\n\n###\n\n".join(returns), context_details
@@ -168,9 +170,7 @@ def fallback_reframe_question(messages, original_question, model="gpt-3.5-turbo"
         return ""
 
 
-
-
-def engineer_prompt(question, index, max_len,model, reframing = True, ):
+def engineer_prompt(question, index, max_len,model, reframing = False):
     """
     Answer a question based on the most similar context from the Pinecone index
     """
@@ -262,3 +262,6 @@ def answer_question(
         return "", "",  0, 0, 0
 
 
+
+
+# An Ai which helps to develop a long-term memory solution for large language models using external knowledge storage, vector embeddings, and sub-modules. The system should be independent of the language model and easily interchangeable. The focus is on creating an efficient and optimized memory structure that prevents slowdowns and increased expenses over time.
