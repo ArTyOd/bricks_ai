@@ -98,7 +98,7 @@ def app():
         max_token_answer = st.sidebar.number_input("Max tokens (answer):", min_value=1, value=500)
         temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.3)
         # reframing = st.sidebar.checkbox("Enable reframing questions", value=False)
-
+        reframing = False
         # Add a separator
         st.sidebar.markdown("<hr style='height: 1px; border: none; background-color: gray; margin-left: -20px; margin-right: -20px;'>", unsafe_allow_html=True)
 
