@@ -266,7 +266,8 @@ def display_feedback(question, answer):
             helpful = False
         comment = st.text_input("Please provide your comments here:", key='comment')
         correct_answer = st.text_area("Please provide the correct answer:", key='correct_answer')
-
+        if feedback_quality == "helpful":
+            correct_answer = answer
         # Submit button for the form
         submitted = st.form_submit_button("Send Feedback")
 
