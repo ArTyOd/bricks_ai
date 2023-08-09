@@ -93,7 +93,7 @@ def app():
 
         # Default to GPT-3.5 if no model is selected
         if "selected_model" not in st.session_state:
-            st.session_state.selected_model = "gpt-3.5-turbo"
+            st.session_state.selected_model = "gpt-4"
             
         st.sidebar.write(f"Selected model: {st.session_state.selected_model}")
         max_token_question = st.sidebar.number_input("Max tokens (question):", min_value=1, value=1500)
@@ -301,7 +301,8 @@ def display_feedback(question, answer):
 
             st.success("Feedback sent successfully!")
 
-
+            clear_chat_history()
+            st.session_state.chat_history = []
 
 
 def display_chat(chat_history, chat_container):
