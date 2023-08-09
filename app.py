@@ -6,6 +6,8 @@ import pinecone
 import pandas as pd
 from google.oauth2 import service_account
 from google.cloud import storage
+from datetime import datetime
+
 
 pinecone_api_key = st.secrets["PINECONE_API_KEY_Bricks"]
 pinecone_environment = st.secrets["PINECONE_environment_Bricks"]
@@ -187,7 +189,7 @@ def app():
 
     with log_tab:
         # Load and display the chatlog dataframe
-        df = pd.DataFrame(feedback_data)
+        df = pd.DataFrame(feedback_data).iloc[::-1]
         st.dataframe(df, use_container_width=True)
     
 def get_checked_categories(unique_categories, on=[]):
@@ -250,7 +252,7 @@ def display_stream_answer(r_text, placeholder_response):
 
 def display_feedback(question, answer):
 
-    with st.form(key="feedback_form"):
+    with st.form(key="feedback_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             feedback_quality = st.radio("Feedback Quality:", ["helpful", "not so helpful"], key='feedback_quality')
@@ -264,8 +266,12 @@ def display_feedback(question, answer):
         # If feedback is "bad," display text area for correct answer and set helpful to False
         if feedback_quality == "not so helpful":
             helpful = False
+            
         comment = st.text_input("Please provide your comments here:", key='comment')
+        helpwise = st.text_input("Please provide your HelpWise ticket URL here:", key='helpwise')
         correct_answer = st.text_area("Please provide the correct answer:", key='correct_answer')
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
         if feedback_quality == "helpful":
             correct_answer = answer
         # Submit button for the form
@@ -274,12 +280,14 @@ def display_feedback(question, answer):
         if submitted:
             print("submitting feedback...")
             feedback_data = {
+                "date": timestamp,
                 "question": question,
                 "gpt_answer": answer,
                 "correct_answer": correct_answer,
                 "comment": comment,
                 "tag": feedback_tag,
-                "helpful": helpful
+                "helpful": helpful,
+                "ticket": helpwise
             }
             
             # Load existing feedback from Google Cloud Storage
