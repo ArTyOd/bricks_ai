@@ -64,6 +64,8 @@ feedback_data = load_from_gcs(bucket_name, feedback_data_file_path)
 
 def app():
     st.set_page_config(layout="wide")
+    if 'show_feedback_form' not in st.session_state:
+        st.session_state.show_feedback_form = False
     st.title("Bricks Ai - Support Tool")
 
     tabs = st.tabs(["Main", "Log"])
@@ -106,86 +108,23 @@ def app():
 
         # Token usage
         st.sidebar.subheader("Token Usage")
-
-        with st.form(key="input_form", clear_on_submit=True):
-            user_input = st.text_area("Insert customer mail:", key="ask_question")
-            button_col1, button_col2 = st.columns(2)
-            with button_col1:
-                send_button = st.form_submit_button("Send")
-
-        search_options_expander = st.expander("Search Options")
-        with search_options_expander:
-            selected_instruction = st.radio("Instructions", list(instructions.keys()))
-            
-            
-            edit_instructions = st.checkbox("Edit instructions")
-            if edit_instructions:
-                instruction_key = st.selectbox("Instruction key:", list(instructions.keys()), index=0)  # Change to selectbox
-                instruction_value = st.text_area("Instruction value:", value=instructions[instruction_key])  # Add value
         
-                
-                button_row = st.columns(2)
-                with button_row[0]:
-                    update_button = st.button("Update")
-                with button_row[1]:
-                    delete_button = st.button("Delete")
+        if not st.session_state.show_feedback_form:
+            st.header("Input")
+            display_input(max_token_question, max_token_answer, temperature, reframing)
 
-                add_new_key = st.text_input("Add new instruction key:")  # Add new input for a new instruction key
-                add_new_value = st.text_area("Add new instruction value:")  # Add new input for a new instruction value
-                add_button = st.button("Add")  # Add button for adding new instruction
-                
-
-                if update_button:
-                    instructions[instruction_key] = instruction_value
-                    save_to_gcs(bucket_name, instructions_file_path, instructions)
-                    st.success(f"Updated instruction: {instruction_key}")
-                    st.experimental_rerun()
-
-                if delete_button and instruction_key in instructions:
-                    del instructions[instruction_key]
-                    save_to_gcs(bucket_name, instructions_file_path, instructions)
-                    st.success(f"Deleted instruction: {instruction_key}")
-                    st.experimental_rerun()
-
-                if add_button:
-                    if add_new_key and add_new_value:  # Check if the new instruction key and value are not empty
-                        instructions[add_new_key] = add_new_value
-                        save_to_gcs(bucket_name, instructions_file_path, instructions)
-                        st.success(f"Added new instruction: {add_new_key}")
-                        st.experimental_rerun()
-                    else:
-                        st.warning("Please provide both a key and a value for the new instruction.")
-
-            on = ["mail", "getting-started", "basics", "templates", "features", "controls", "filters", "woocommerce"]
-            checked_categories = get_checked_categories(unique_categories, on)
-
-        if send_button:
-            placeholder_response = st.empty()
-            chat_container = st.container() # Updated container definition
-            st.session_state.prompt_tokens, st.session_state.completion_tokens, st.session_state.total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing, st.session_state.selected_model)
-
-            # Update the token count in the sidebar
-            st.sidebar.write(f"Tokens used for prompt: {st.session_state.prompt_tokens}")
-            st.sidebar.write(f"Tokens used for completion: {st.session_state.completion_tokens}")
-            st.sidebar.write(f"Total tokens: {st.session_state.total_tokens}")
-            if "total_chat_tokens" not in st.session_state:
-                st.session_state.total_chat_tokens = 0
-            st.session_state.total_chat_tokens += st.session_state.total_tokens
-            st.sidebar.write(f"Total tokens in chat session: {st.session_state.total_chat_tokens}")
-        
-            st.session_state.show_feedback_form = True  # Set the variable to show the feedback form
 
         if 'show_feedback_form' in st.session_state and st.session_state.show_feedback_form:
             question = [entry['content'] for entry in st.session_state.chat_history if entry['role'] == 'user'][0]
             answer = [entry['content'] for entry in st.session_state.chat_history if entry['role'] == 'assistant'][0]
             st.header("Feedback")
             display_feedback(question, answer, [st.session_state.prompt_tokens, st.session_state.completion_tokens, st.session_state.total_tokens], [st.session_state.selected_model, max_token_question, max_token_answer, temperature])
-            
+         
 
             # Add a New Session/Chat button in app.py
-        if st.button("New Session/Chat"):
-            clear_chat_history()
-            st.session_state.chat_history = []
+        # if st.button("New Session/Chat"):
+        #     clear_chat_history()
+        #     st.session_state.chat_history = []
 
     with log_tab:
         # Load and display the chatlog dataframe
@@ -256,6 +195,79 @@ def display_stream_answer(r_text, placeholder_response):
     return updated_stream  # Return the updated stream to be used in feedback
 
 
+def display_input(max_token_question, max_token_answer, temperature, reframing):
+    with st.form(key="input_form", clear_on_submit=True):
+                user_input = st.text_area("Insert customer mail:", key="ask_question")
+                button_col1, button_col2 = st.columns(2)
+                with button_col1:
+                    send_button = st.form_submit_button("Send")
+
+    search_options_expander = st.expander("Search Options")
+    with search_options_expander:
+        selected_instruction = st.radio("Instructions", list(instructions.keys()))
+        
+        
+        edit_instructions = st.checkbox("Edit instructions")
+        if edit_instructions:
+            instruction_key = st.selectbox("Instruction key:", list(instructions.keys()), index=0)  # Change to selectbox
+            instruction_value = st.text_area("Instruction value:", value=instructions[instruction_key])  # Add value
+    
+            
+            button_row = st.columns(2)
+            with button_row[0]:
+                update_button = st.button("Update")
+            with button_row[1]:
+                delete_button = st.button("Delete")
+
+            add_new_key = st.text_input("Add new instruction key:")  # Add new input for a new instruction key
+            add_new_value = st.text_area("Add new instruction value:")  # Add new input for a new instruction value
+            add_button = st.button("Add")  # Add button for adding new instruction
+            
+
+            if update_button:
+                instructions[instruction_key] = instruction_value
+                save_to_gcs(bucket_name, instructions_file_path, instructions)
+                st.success(f"Updated instruction: {instruction_key}")
+                st.experimental_rerun()
+
+            if delete_button and instruction_key in instructions:
+                del instructions[instruction_key]
+                save_to_gcs(bucket_name, instructions_file_path, instructions)
+                st.success(f"Deleted instruction: {instruction_key}")
+                st.experimental_rerun()
+
+            if add_button:
+                if add_new_key and add_new_value:  # Check if the new instruction key and value are not empty
+                    instructions[add_new_key] = add_new_value
+                    save_to_gcs(bucket_name, instructions_file_path, instructions)
+                    st.success(f"Added new instruction: {add_new_key}")
+                    st.experimental_rerun()
+                else:
+                    st.warning("Please provide both a key and a value for the new instruction.")
+
+        on = ["mail", "getting-started", "basics", "templates", "features", "controls", "filters", "woocommerce"]
+        checked_categories = get_checked_categories(unique_categories, on)
+
+    if send_button:
+
+        st.session_state.show_feedback_form = True  # Set the variable to show the feedback form
+        placeholder_response = st.empty()
+        chat_container = st.container() # Updated container definition
+        st.session_state.prompt_tokens, st.session_state.completion_tokens, st.session_state.total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing, st.session_state.selected_model)
+
+        # Update the token count in the sidebar
+        st.sidebar.write(f"Tokens used for prompt: {st.session_state.prompt_tokens}")
+        st.sidebar.write(f"Tokens used for completion: {st.session_state.completion_tokens}")
+        st.sidebar.write(f"Total tokens: {st.session_state.total_tokens}")
+        if "total_chat_tokens" not in st.session_state:
+            st.session_state.total_chat_tokens = 0
+        st.session_state.total_chat_tokens += st.session_state.total_tokens
+        st.sidebar.write(f"Total tokens in chat session: {st.session_state.total_chat_tokens}")
+    
+        st.session_state.show_feedback_form = True  # Set the variable to show the feedback form
+        
+        
+
 def display_feedback(question, answer, tokens_used, model_parameters):
 
     with st.form(key="feedback_form", clear_on_submit=True):
@@ -307,13 +319,16 @@ def display_feedback(question, answer, tokens_used, model_parameters):
             # Save the updated feedback to Google Cloud Storage
             save_to_gcs(bucket_name, feedback_data_file_path, existing_feedback)
 
-            # clear_chat_history()
-            # st.session_state.chat_history = []
+            print(f"{st.session_state.chat_history =}")
             st.success("Feedback sent successfully!")
-           
+            clear_chat_history()
+            st.session_state.chat_history = []
             st.session_state.show_feedback_form = False
+            
+            print(f"{st.session_state.chat_history =}")
+            print(f"{st.session_state.show_feedback_form =}")
             st.experimental_rerun()  # Rerun the script from the top
-
+            
 def display_chat(chat_history, chat_container):
     chat_text = ""
     for entry in reversed(chat_history):
