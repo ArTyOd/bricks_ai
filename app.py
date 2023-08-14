@@ -162,15 +162,15 @@ def app():
         if send_button:
             placeholder_response = st.empty()
             chat_container = st.container() # Updated container definition
-            prompt_tokens, completion_tokens, total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing, st.session_state.selected_model)
+            st.session_state.prompt_tokens, st.session_state.completion_tokens, st.session_state.total_tokens = update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing, st.session_state.selected_model)
 
             # Update the token count in the sidebar
-            st.sidebar.write(f"Tokens used for prompt: {prompt_tokens}")
-            st.sidebar.write(f"Tokens used for completion: {completion_tokens}")
-            st.sidebar.write(f"Total tokens: {total_tokens}")
+            st.sidebar.write(f"Tokens used for prompt: {st.session_state.prompt_tokens}")
+            st.sidebar.write(f"Tokens used for completion: {st.session_state.completion_tokens}")
+            st.sidebar.write(f"Total tokens: {st.session_state.total_tokens}")
             if "total_chat_tokens" not in st.session_state:
                 st.session_state.total_chat_tokens = 0
-            st.session_state.total_chat_tokens += total_tokens
+            st.session_state.total_chat_tokens += st.session_state.total_tokens
             st.sidebar.write(f"Total tokens in chat session: {st.session_state.total_chat_tokens}")
         
             st.session_state.show_feedback_form = True  # Set the variable to show the feedback form
@@ -179,7 +179,7 @@ def app():
             question = [entry['content'] for entry in st.session_state.chat_history if entry['role'] == 'user'][0]
             answer = [entry['content'] for entry in st.session_state.chat_history if entry['role'] == 'assistant'][0]
             st.header("Feedback")
-            display_feedback(question, answer)
+            display_feedback(question, answer, [st.session_state.prompt_tokens, st.session_state.completion_tokens, st.session_state.total_tokens], [st.session_state.selected_model, max_token_question, max_token_answer, temperature])
             
 
             # Add a New Session/Chat button in app.py
@@ -190,6 +190,11 @@ def app():
     with log_tab:
         # Load and display the chatlog dataframe
         df = pd.DataFrame(feedback_data).iloc[::-1]
+        
+        # Convert the list columns to string representation
+        df['tokens_used'] = df['tokens_used'].astype(str)
+        df['model_parameters'] = df['model_parameters'].astype(str)
+
         st.dataframe(df, use_container_width=True)
     
 def get_checked_categories(unique_categories, on=[]):
@@ -217,6 +222,7 @@ def get_checked_categories(unique_categories, on=[]):
 
 
 def update_chat(user_input, selected_instruction, checked_categories, chat_container, placeholder_response, max_token_question, max_token_answer, temperature, reframing, selected_model):
+    prompt_tokens, completion_tokens, total_tokens = 0, 0, 0 
     if user_input:
         print(f"{selected_model = }")
         updated_stream = ""
@@ -250,7 +256,7 @@ def display_stream_answer(r_text, placeholder_response):
     return updated_stream  # Return the updated stream to be used in feedback
 
 
-def display_feedback(question, answer):
+def display_feedback(question, answer, tokens_used, model_parameters):
 
     with st.form(key="feedback_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -287,7 +293,9 @@ def display_feedback(question, answer):
                 "comment": comment,
                 "tag": feedback_tag,
                 "helpful": helpful,
-                "ticket": helpwise
+                "ticket": helpwise,
+                "tokens_used": tokens_used,        
+                "model_parameters": model_parameters 
             }
             
             # Load existing feedback from Google Cloud Storage
@@ -299,11 +307,12 @@ def display_feedback(question, answer):
             # Save the updated feedback to Google Cloud Storage
             save_to_gcs(bucket_name, feedback_data_file_path, existing_feedback)
 
+            # clear_chat_history()
+            # st.session_state.chat_history = []
             st.success("Feedback sent successfully!")
-
-            clear_chat_history()
-            st.session_state.chat_history = []
-
+           
+            st.session_state.show_feedback_form = False
+            st.experimental_rerun()  # Rerun the script from the top
 
 def display_chat(chat_history, chat_container):
     chat_text = ""
