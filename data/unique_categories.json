@@ -1,12 +1,13 @@
 {
   "Academy": [
+    "actions",
+    "woocommerce",
     "getting-started",
     "templates",
     "features",
     "basics",
     "controls",
-    "filters",
-    "woocommerce"
+    "filters"
   ],
   "Discourse": [
     "Announcements",

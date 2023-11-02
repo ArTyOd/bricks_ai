@@ -99,7 +99,7 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
         )
 
 
-def create_context(question, index, max_len=1500, size="ada"):
+def create_context(question, selected_categories, index, max_len=1500, size="ada"):
     """
     Create a context for a question by finding the most similar context from the Pinecone index
     """
@@ -179,26 +179,28 @@ def fallback_reframe_question(messages, original_question, model="gpt-3.5-turbo"
         return ""
 
 
-def engineer_prompt(question, index, max_len, model, reframing=False):
+def engineer_prompt(question, selected_categories, index, max_len, model, reframing=False):
     """
     Answer a question based on the most similar context from the Pinecone index
     """
     global messages
+    if "mail" in selected_categories:
+        selected_categories.remove("mail")
+        context, context_details = create_context(question, selected_categories, index, max_len)
+        context_mail, context_details_mail = create_context(question, ["mail"], index, max_len=1000)
+        # For strings, just use the + operator
+        context_combined = context + " " + context_mail  # Added a space in between for separation
 
-    context, context_details = create_context(question, index, max_len)
-    context_score = context_details[0]["score"] if context_details else 0
-    if context_score < 0.78 and reframing:
-        rephrased_question = fallback_reframe_question(messages, question, model=model, temperature=0.1, max_tokens=100)
-        new_context, new_context_details = create_context(rephrased_question, index, max_len)
-        new_context_score = new_context_details[0]["score"] if context_details else 0
-        if new_context_score > context_score:
-            context, context_details = new_context, new_context_details
-            print(
-                f"Context score to low {context_score = }, question was rephrased: {rephrased_question}, new context score {new_context_score} \n----------------\n"
-            )
-            question = rephrased_question
-    prompt = [{"role": "assistant", "content": f"Context: {context}"}, {"role": "user", "content": f"{question}"}]
-    return prompt, context_details
+        # If context_details are dictionaries, you can merge them.
+        # This will overwrite any duplicate keys in context_details with values from context_details_mail
+        context_details_combined = context_details + context_details_mail
+    else:
+        context, context_details = create_context(question, selected_categories, index, max_len)
+        context_combined = context
+        context_details_combined = context_details
+
+    prompt = [{"role": "assistant", "content": f"Context: {context_combined}"}, {"role": "user", "content": f"{question}"}]
+    return prompt, context_details_combined
 
 
 def answer_question(
@@ -216,11 +218,13 @@ def answer_question(
     stop=None,
     callback=None,
 ):
-    global messages, selected_categories
+    global messages
 
     selected_categories = categories
     messages[0] = {"role": "system", "content": f"{instruction}"}
-    prompt, context_details = engineer_prompt(question=question, index=index, max_len=max_len, reframing=reframing, model=model)
+    prompt, context_details = engineer_prompt(
+        question=question, selected_categories=selected_categories, index=index, max_len=max_len, reframing=reframing, model=model
+    )
     messages += prompt
 
     print(f"messages before the prompting OpenAO: {messages} \n----------------\n ")
