@@ -74,7 +74,7 @@ def app():
     with main_tab:
         st.sidebar.header("How it Works")
         st.sidebar.write(
-            "This AI Assistant uses GPT-3.5 to answer questions based on a chosen set of instructions and categories. Customize GPT-3.5 parameters and select categories to refine the AI's responses."
+            "This AI Assistant uses GPT-4 to answer questions based on a chosen set of instructions and categories. Customize GPT-4 parameters and select categories to refine the AI's responses. Send feedback to help us improve."
         )
 
         # Add a separator
