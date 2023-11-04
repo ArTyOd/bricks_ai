@@ -270,6 +270,8 @@ def display_input(max_token_question, max_token_answer, temperature, reframing):
         checked_categories = get_checked_categories(unique_categories, on)
 
     if send_button:
+        st.session_state.chat_history = []
+        print(f"\nFresh start: \n {st.session_state.chat_history =}")
         st.session_state.show_feedback_form = True  # Set the variable to show the feedback form
         placeholder_response = st.empty()
         chat_container = st.container()  # Updated container definition
@@ -356,7 +358,7 @@ def display_feedback(question, answer, tokens_used, model_parameters):
 
             print(f"{st.session_state.chat_history =}")
             print(f"{st.session_state.show_feedback_form =}")
-            st.experimental_rerun()  # Rerun the script from the top
+            st.rerun()  # Rerun the script from the top
 
 
 def display_chat(chat_history, chat_container):
@@ -395,4 +397,5 @@ def display_context_details(context_details):
 if __name__ == "__main__":
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+
     app()
