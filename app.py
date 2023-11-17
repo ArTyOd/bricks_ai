@@ -130,7 +130,7 @@ def processing_request():
             general_context = context
             general_context_details = context_details
             
-        st.dataframe(pd.DataFrame(general_context_details), use_container_width=True)
+        # st.dataframe(pd.DataFrame(general_context_details), use_container_width=True)
         time.sleep(0.5)
         status.update(label="request processed", state="complete", expanded=False)
         st.session_state.prompt = [
@@ -221,7 +221,7 @@ def main():
 
     with tab2:
         st.session_state.df_requests = st.session_state.df_requests.astype(str)
-        st.dataframe(st.session_state.df_requests.iloc[::-1], use_container_width=True)
+        st.dataframe(st.session_state.df_requests.drop(columns=["general_context"]), use_container_width=True)
 
 
 
