@@ -221,7 +221,7 @@ def main():
 
     with tab2:
         st.session_state.df_requests = st.session_state.df_requests.astype(str)
-        st.dataframe(st.session_state.df_requests.drop(columns=["general_context"]), use_container_width=True)
+        st.dataframe(st.session_state.df_requests.drop(columns=["general_context"]).iloc[::-1], use_container_width=True)
 
 
 
